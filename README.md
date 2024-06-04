@@ -9,4 +9,4 @@ Tilgangur þessa kóða er að greina gögn um gæsluvarðhald sem [birt voru á
 
 # Tíðni eftir ríkisfangi
 
-![](Figures/gaesluvardhald_tidni.pdf)
+![](Figures/gaesluvardhald_tidni.png)
