@@ -9,9 +9,7 @@ library(bayesplot)
 library(patchwork)
 theme_set(theme_metill())
 
-library(showtext)
-font_add_google("Lato")
-showtext_auto()
+
 
 d <- read_csv("data/gaesluvardhald_by_rikisfang.csv")
 d_pop <- read_csv("data/pop_data.csv")
@@ -88,7 +86,7 @@ p1 <- summ |>
     rikisfang = glue("{rikisfang} ({n})") |> 
       fct_reorder(mean)
   ) |> 
-  filter(q95 < 0.5) |> 
+  # filter(q95 < 0.5) |> 
   ggplot(aes(mean, rikisfang)) +
   geom_point() +
   geom_segment(
@@ -127,7 +125,7 @@ p2 <- summ |>
     rikisfang = glue("{rikisfang} ({n})") |> 
       fct_reorder(mean)
   ) |> 
-  filter(q95 < 0.5) |> 
+  # filter(q95 < 0.5) |> 
   ggplot(aes(mean, rikisfang)) +
   geom_point() +
   geom_segment(
@@ -164,6 +162,18 @@ p <- p1 + p2 +
 p
 
 
+library(showtext)
+font_add_google("Lato")
+showtext_auto()
+
+ggsave(
+  plot = p,
+  file = "Figures/gaesluvardhald_tidni.pdf",
+  width = 8, height = 0.64 * 8, scale = 1.5
+)
+showtext_auto(enable = FALSE)
+
+
 ggsave(
   plot = p,
   file = "Figures/gaesluvardhald_tidni.png",
@@ -172,9 +182,5 @@ ggsave(
 
 
 
-ggsave(
-  plot = p,
-  file = "Figures/gaesluvardhald_tidni.pdf",
-  width = 8, height = 0.64 * 8, scale = 1.5
-)
+
 
