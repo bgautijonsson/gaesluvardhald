@@ -9,6 +9,10 @@ library(bayesplot)
 library(patchwork)
 theme_set(theme_metill())
 
+library(showtext)
+font_add_google("Lato")
+showtext_auto()
+
 d <- read_csv("data/gaesluvardhald_by_rikisfang.csv")
 d_pop <- read_csv("data/pop_data.csv")
 
@@ -168,4 +172,9 @@ ggsave(
 
 
 
+ggsave(
+  plot = p,
+  file = "Figures/gaesluvardhald_tidni.pdf",
+  width = 8, height = 0.64 * 8, scale = 1.5
+)
 
