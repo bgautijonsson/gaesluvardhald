@@ -9,8 +9,6 @@ library(bayesplot)
 library(patchwork)
 theme_set(theme_metill())
 
-
-
 d <- read_csv("data/gaesluvardhald_by_rikisfang.csv")
 d_pop <- read_csv("data/pop_data.csv")
 
@@ -57,7 +55,7 @@ results <- model$sample(
   data = stan_data,
   chains = 4,
   parallel_chains = 4, 
-  iter_sampling = 4000
+  iter_sampling = 1000
 )
 
 
@@ -68,12 +66,25 @@ summ <- results |>
     str_detect(variable, "^theta")
   )
 
-results$summary(c("phi", "mu_theta", "sigma_theta"))
-
-
-p1 <- summ |> 
+plot_dat <- results$draws() |> 
+  as_draws_df() |> 
+  as_tibble() |> 
+  pivot_longer(-c(".chain", ".iteration", ".draw")) |> 
+  filter(
+    str_detect(name, "^theta")
+  ) |> 
+  reframe(
+    q = seq(0.05, 0.45, by = 0.05),
+    lower = quantile(value, probs = 0.5 - q),
+    upper = quantile(value, probs = 0.5 + q),
+    mean = mean(value),
+    .by = name
+  ) |> 
   mutate(
-    country = parse_number(variable)
+    country = parse_number(name),
+    q = 1 - (2 * q),
+    col = percent(q, accuracy = 1) |> 
+      fct_reorder(q)
   ) |> 
   inner_join(
     d |> 
@@ -86,11 +97,65 @@ p1 <- summ |>
     rikisfang = glue("{rikisfang} ({n})") |> 
       fct_reorder(mean)
   ) |> 
-  # filter(q95 < 0.5) |> 
-  ggplot(aes(mean, rikisfang)) +
-  geom_point() +
+  arrange(q) |> 
+  ggplot(aes(y = rikisfang)) +
   geom_segment(
-    aes(x = q5, xend = q95, yend = rikisfang)
+    aes(x = lower, xend = upper, yend = rikisfang, col = col, group = col),
+    alpha = 0.5,
+    linewidth = 3
+  ) +
+  scale_x_continuous(
+    trans = "log10",
+    guide = guide_axis_truncated()
+  ) +
+  scale_y_discrete(
+    guide = guide_axis_truncated()
+  ) +
+  scale_color_brewer(
+    palette = "Blues",
+    guide = "none"
+  )
+
+results$summary(c("phi", "mu_theta", "sigma_theta"))
+
+
+p1 <- results$draws() |> 
+  as_draws_df() |> 
+  as_tibble() |> 
+  pivot_longer(-c(".chain", ".iteration", ".draw")) |> 
+  filter(
+    str_detect(name, "^theta")
+  ) |> 
+  reframe(
+    q = c(seq(0.05, 0.45, by = 0.05)),
+    lower = quantile(value, probs = 0.5 - q),
+    upper = quantile(value, probs = 0.5 + q),
+    mean = mean(value),
+    .by = name
+  ) |> 
+  mutate(
+    country = parse_number(name),
+    q = 1 - (2 * q),
+    col = percent(q, accuracy = 1) |> 
+      fct_reorder(q)
+  ) |> 
+  inner_join(
+    d |> 
+      mutate(
+        country = as.numeric(as_factor(rikisfang))
+      ) |> 
+      filter(ar == 2023, .by = rikisfang)
+  ) |> 
+  mutate(
+    rikisfang = glue("{rikisfang} ({n})") |> 
+      fct_reorder(mean)
+  ) |> 
+  arrange(q) |> 
+  ggplot(aes(y = rikisfang)) +
+  geom_segment(
+    aes(x = lower, xend = upper, yend = rikisfang, col = col, group = col),
+    alpha = 0.5,
+    linewidth = 3
   ) +
   scale_x_continuous(
     labels = label_number(scale = 1e3, big.mark = ".", decimal.mark = ","),
@@ -101,6 +166,10 @@ p1 <- summ |>
   scale_y_discrete(
     guide = guide_axis_truncated()
   ) +
+  scale_color_brewer(
+    palette = "Blues",
+    guide = "none"
+  ) +
   labs(
     x = "Árlegur fjöldi einstaklinga í gæsluvarðhaldi á hverja 1.000 íbúa",
     y = "Ríkisfang (Íbúafjöldi 2023)",
@@ -110,9 +179,25 @@ p1 <- summ |>
 
 
 
-p2 <- summ |> 
+p2 <- results$draws() |> 
+  as_draws_df() |> 
+  as_tibble() |> 
+  pivot_longer(-c(".chain", ".iteration", ".draw")) |> 
+  filter(
+    str_detect(name, "^theta")
+  ) |> 
+  reframe(
+    q = seq(0.05, 0.45, by = 0.05),
+    lower = quantile(value, probs = 0.5 - q),
+    upper = quantile(value, probs = 0.5 + q),
+    mean = mean(value),
+    .by = name
+  ) |> 
   mutate(
-    country = parse_number(variable)
+    country = parse_number(name),
+    q = 1 - (2 * q),
+    col = percent(q, accuracy = 1) |> 
+      fct_reorder(q)
   ) |> 
   inner_join(
     d |> 
@@ -125,11 +210,12 @@ p2 <- summ |>
     rikisfang = glue("{rikisfang} ({n})") |> 
       fct_reorder(mean)
   ) |> 
-  # filter(q95 < 0.5) |> 
-  ggplot(aes(mean, rikisfang)) +
-  geom_point() +
+  arrange(q) |> 
+  ggplot(aes(y = rikisfang)) +
   geom_segment(
-    aes(x = q5, xend = q95, yend = rikisfang)
+    aes(x = lower, xend = upper, yend = rikisfang, col = col, group = col),
+    alpha = 0.5,
+    linewidth = 3
   ) +
   scale_x_continuous(
     labels = label_number(scale = 1e3, big.mark = ".", decimal.mark = ","),
@@ -139,6 +225,10 @@ p2 <- summ |>
   ) +
   scale_y_discrete(
     guide = guide_axis_truncated()
+  ) +
+  scale_color_brewer(
+    palette = "Blues",
+    guide = "none"
   ) +
   labs(
     x = "Árlegur fjöldi einstaklinga í gæsluvarðhaldi á hverja 1.000 íbúa",
@@ -155,7 +245,13 @@ p <- p1 + p2 +
     subtitle = str_c(
       "Sýnt sem fjöldi einstaklinga í gæsluvarðhaldi á 1.000 einstaklinga með viðeigandi ríkisfang",
       " | ",
-      "Línur sýna skekkjumörk"
+      "Dýpri litir sýna líklegri gildi"
+    ),
+    caption = str_c(
+      "Myndir sýna niðurstöður úr tölfræðilíkani þar sem gögn um fjölda einstaklinga í gæsluvarðhaldi ",
+      "og fólksfjölda eftir ríkisfangi eru notuð til að meta árlega tíðni gæsluvarðhalds eftir ríkisfangi.",
+      "\n",
+      "Gögn og kóði: https://github.com/bgautijonsson/gaesluvardhald"
     )
   )
 
